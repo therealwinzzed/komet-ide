@@ -1,28 +1,29 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 
 plugins {
-    alias(libs.plugins.kotlinMultiplatform)
+    alias(libs.plugins.kotlinJvm)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
 }
 
 kotlin {
-    jvm()
+    jvmToolchain(21)
+}
 
-    sourceSets {
-        val jvmMain by getting {
-            kotlin.srcDirs("src/main/kotlin")
-            resources.srcDirs("src/main/resources")
-            dependencies {
-                // The shared module owns all the IDE UI and logic; this module only
-                // provides the desktop entry point plus the JVM actual implementations.
-                implementation(project(":shared"))
-
-                implementation(compose.desktop.currentOs)
-                implementation(libs.kotlinx.coroutinesSwing)
-            }
-        }
+sourceSets {
+    main {
+        kotlin.srcDirs("src/main/kotlin")
     }
+}
+
+dependencies {
+    implementation(compose.desktop.currentOs)
+    implementation(compose.material3)
+    implementation(compose.materialIconsExtended)
+    implementation(compose.components.resources)
+    implementation(libs.kotlinx.coroutinesSwing)
+    implementation(libs.markdownRenderer)
+    implementation(libs.markdownRendererM3)
 }
 
 compose.desktop {
@@ -30,9 +31,9 @@ compose.desktop {
         mainClass = "winzzed.komet.ide.MainKt"
 
         nativeDistributions {
-            targetFormats(TargetFormat.Msi, TargetFormat.Exe, TargetFormat.Dmg)
+            targetFormats(TargetFormat.Msi, TargetFormat.Exe)
             packageName = "Komet IDE"
-            packageVersion = "0.0.9"
+            packageVersion = "1.0.0"
             windows {
                 menu = true
                 menuGroup = "Komet IDE"
