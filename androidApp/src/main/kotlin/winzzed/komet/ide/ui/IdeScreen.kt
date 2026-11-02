@@ -29,9 +29,11 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import winzzed.komet.ide.data.CURRENT_VERSION
 import winzzed.komet.ide.data.ProjectFile
+import winzzed.komet.ide.data.ProjectStorage
 import winzzed.komet.ide.data.RecentProjects
 import winzzed.komet.ide.data.createProjectOnDisk
 import winzzed.komet.ide.data.fileNameOf
+import winzzed.komet.ide.data.parsePluginInfo
 import winzzed.komet.ide.platform.DownloadResult
 import winzzed.komet.ide.platform.PlatformBackHandler
 import winzzed.komet.ide.platform.downloadsFolderLabel
@@ -57,6 +59,7 @@ fun IdeScreen(
 
     var showCreateDialog by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
+    var showTester by remember { mutableStateOf(false) }
     var currentBasePath by remember { mutableStateOf(basePath) }
     var message by remember { mutableStateOf<String?>(null) }
     var building by remember { mutableStateOf(false) }
@@ -71,6 +74,7 @@ fun IdeScreen(
 
         PlatformBackHandler(enabled = true) {
             when {
+                showTester -> showTester = false
                 showSettings -> showSettings = false
                 showCreateDialog -> showCreateDialog = false
                 compact && toolWindowOpen -> toolWindowOpen = false
@@ -107,6 +111,7 @@ fun IdeScreen(
                 onNewProject = { showCreateDialog = true },
                 onOpenProject = { chooser.show("Открыть проект", currentBasePath) },
                 onBuild = build,
+                onRun = { showTester = true },
                 onRefresh = { vm.refresh() },
                 statusLabel = if (building) "Сборка…" else null
             ) {
@@ -207,6 +212,20 @@ fun IdeScreen(
                 onClose = { showSettings = false }
             )
         }
+    }
+
+    if (showTester) {
+        // Read the manifest from disk each time so edits made in the project are
+        // reflected without needing to reopen the project.
+        val manifestRaw = remember(showTester, currentBasePath) {
+            val storage = ProjectStorage(currentBasePath)
+            val manifest = storage.listFiles().firstOrNull { it.name == "manifest.json" }
+            manifest?.let { storage.read(it) }.orEmpty()
+        }
+        PluginTesterWindow(
+            info = parsePluginInfo(manifestRaw),
+            onClose = { showTester = false }
+        )
     }
 
     message?.let { text ->

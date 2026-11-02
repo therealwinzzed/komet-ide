@@ -91,6 +91,7 @@ fun IdeMainToolbar(
     onNewProject: () -> Unit,
     onOpenProject: () -> Unit,
     onBuild: (() -> Unit)?,
+    onRun: (() -> Unit)?,
     onRefresh: (() -> Unit)?,
     statusLabel: String?,
     extraActions: @Composable RowScope.() -> Unit = {}
@@ -124,10 +125,10 @@ fun IdeMainToolbar(
         )
         ToolbarIconButton(
             icon = Icons.Filled.PlayArrow,
-            contentDescription = "Запустить",
-            onClick = {},
-            enabled = false,
-            tint = IdeTextMuted
+            contentDescription = "Тестировать плагин",
+            onClick = { onRun?.invoke() },
+            enabled = onRun != null,
+            tint = IdeGreen
         )
 
         ToolbarSeparator()
