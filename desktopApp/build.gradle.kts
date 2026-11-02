@@ -33,7 +33,7 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Msi, TargetFormat.Exe)
             packageName = "Komet IDE"
-            packageVersion = "1.0.0_bt-2"
+            packageVersion = "1.0.0"
             windows {
                 menu = true
                 menuGroup = "Komet IDE"
