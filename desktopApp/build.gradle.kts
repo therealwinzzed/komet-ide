@@ -33,7 +33,7 @@ compose.desktop {
         mainClass = "winzzed.komet.ide.MainKt"
 
         nativeDistributions {
-            targetFormats(TargetFormat.Msi, TargetFormat.Exe, TargetFormat.Deb)
+            targetFormats(TargetFormat.Dmg, TargetFormat.Exe, TargetFormat.Msi, TargetFormat.Deb, TargetFormat.AppImage, TargetFormat.Pkg, TargetFormat.Rpm, TargetFormat.Deb)
             packageName = "Komet IDE"
             packageVersion = "1.0.0"
             windows {
