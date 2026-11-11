@@ -6,6 +6,25 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <!--
+      Not required for the system folder picker: it is launched through the Storage
+      Access Framework, where the user grants access per folder. This entry only
+      matters for Android 9 and older, which lack scoped storage.
+    -->
+    <uses-permission
+            android:name="android.permission.READ_EXTERNAL_STORAGE"
+            android:maxSdkVersion="28" />
+
+    <!-- Lets the app resolve the system document providers shown in the picker. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.OPEN_DOCUMENT_TREE" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.OPEN_DOCUMENT" />
+        </intent>
+    </queries>
+
+    <!--
       Only needed on Android 9 and older: writing to the public Downloads folder.
       Android 10+ publishes through MediaStore, which needs no permission at all.
     -->

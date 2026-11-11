@@ -22,6 +22,7 @@ import winzzed.komet.ide.data.parentPathOf
 import winzzed.komet.ide.data.pathExists
 import winzzed.komet.ide.platform.pickDirectory
 import winzzed.komet.ide.platform.platformSupportsNativeDialogs
+import winzzed.komet.ide.platform.rememberSystemDirectoryPicker
 import winzzed.komet.ide.ui.theme.*
 
 /**
@@ -139,25 +140,45 @@ fun DirectoryChooserDialog(
 
 /**
  * Opens the platform picker when one exists, otherwise the in-app browser rooted at
- * [fallbackRoot]. Returns nothing; [onResult] receives the chosen path or null.
+ * [fallbackRoot]. [onResult] receives the chosen path or null.
+ *
+ * [onResultWithUri] additionally receives the SAF tree URI on Android; the path is
+ * then only a display label and all I/O must go through the URI.
  */
 @Composable
 fun rememberDirectoryChooser(
     fallbackRoot: String,
     onResult: (String?) -> Unit
+): DirectoryChooserController =
+    rememberDirectoryChooser(fallbackRoot, onResultWithUri = { path, _ -> onResult(path) })
+
+@Composable
+fun rememberDirectoryChooser(
+    fallbackRoot: String,
+    onResultWithUri: (path: String, uri: String?) -> Unit
 ): DirectoryChooserController {
     var request by remember { mutableStateOf<DirectoryRequest?>(null) }
 
     // The controller is remembered across recompositions, so read the latest
     // callback instead of capturing the one from the first composition.
-    val currentOnResult by rememberUpdatedState(onResult)
+    val currentOnResult by rememberUpdatedState(onResultWithUri)
+    val systemPicker = rememberSystemDirectoryPicker { path, uri ->
+        currentOnResult(path, uri)
+    }
 
-    val controller = remember {
+    val controller = remember(systemPicker) {
         DirectoryChooserController { title, startPath ->
-            if (platformSupportsNativeDialogs) {
-                pickDirectory(title, startPath) { path -> currentOnResult(path) }
-            } else {
-                request = DirectoryRequest(title, startPath)
+            when {
+                // Desktop: a blocking native chooser returning an absolute path.
+                platformSupportsNativeDialogs -> pickDirectory(title, startPath) { path ->
+                    if (path != null) currentOnResult(path, null)
+                }
+
+                // Android: the asynchronous SAF picker, offering Documents/Downloads/etc.
+                systemPicker.isSupported -> systemPicker.show(startPath)
+
+                // Fallback: the in-app browser, used when no system picker exists.
+                else -> request = DirectoryRequest(title, startPath)
             }
         }
     }
@@ -170,7 +191,7 @@ fun rememberDirectoryChooser(
             onDismiss = { request = null },
             onSelect = { path ->
                 request = null
-                currentOnResult(path)
+                currentOnResult(path, null)
             }
         )
     }

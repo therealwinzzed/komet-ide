@@ -102,3 +102,8 @@ fun listDirectories(dirPath: String): List<String> =
     listNames(dirPath)
         .filter { isDirectory("$dirPath/$it") }
         .sorted()
+
+/** True for a path that looks like a plugin archive. */
+fun isKinetFile(path: String): Boolean =
+    path.substringAfterLast('/', "").substringAfterLast('\\', "")
+        .endsWith(".kinet", ignoreCase = true)

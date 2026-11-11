@@ -71,6 +71,50 @@ fun copyRaw(from: String, to: String) {
     File(from).copyTo(target, overwrite = true)
 }
 
+fun writeBytes(path: String, bytes: ByteArray) {
+    val f = File(path)
+    f.parentFile?.mkdirs()
+    f.writeBytes(bytes)
+}
+
+fun readBytes(path: String): ByteArray = File(path).readBytes()
+
+fun mkdirs(path: String): Boolean = File(path).let { it.exists() || it.mkdirs() }
+
+/**
+ * Decompresses a raw DEFLATE stream from a ZIP entry.
+ *
+ * Uses [java.util.zip.Inflater] directly rather than InflaterInputStream because
+ * the stream form throws when the buffer holds trailing bytes past the end of the
+ * deflate block, which happens with archives written by third-party tools.
+ */
+fun inflate(raw: ByteArray): ByteArray {
+    // ZIP stores raw DEFLATE without the zlib wrapper, so nowrap must be true;
+    // otherwise Inflater expects a 2-byte zlib header and fails on "ab 56".
+    val inflater = java.util.zip.Inflater(true)
+    return try {
+        inflater.setInput(raw)
+        val out = java.io.ByteArrayOutputStream(raw.size.coerceAtLeast(64) * 2)
+        val chunk = ByteArray(8 * 1024)
+        while (true) {
+            val n = try {
+                inflater.inflate(chunk)
+            } catch (_: java.util.zip.DataFormatException) {
+                break
+            }
+            if (n > 0) {
+                out.write(chunk, 0, n)
+            } else {
+                // 0 means finished, or it needs input we do not have.
+                break
+            }
+        }
+        out.toByteArray()
+    } finally {
+        inflater.end()
+    }
+}
+
 fun defaultProjectsDirectory(): String =
     File(System.getProperty("user.home") ?: ".", "KometIDEProjects").absolutePath
 

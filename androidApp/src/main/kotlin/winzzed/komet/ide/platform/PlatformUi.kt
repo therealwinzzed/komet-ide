@@ -8,9 +8,10 @@ import androidx.compose.runtime.Composable
 import winzzed.komet.ide.data.AndroidContext
 
 /**
- * Android has no synchronous directory picker. The current UI has no Activity
- * launcher wired up, so picking is reported as unsupported rather than faked;
- * the caller treats a null result as "cancelled".
+ * Android does have a folder picker, but it is asynchronous (the result arrives
+ * after the activity resumes) and returns a SAF tree URI instead of an absolute
+ * path. Callers that can only accept a path synchronously therefore see this as
+ * unsupported; the IDE uses [SafPickers] for the real picker.
  */
 val platformSupportsNativeDialogs: Boolean = false
 
@@ -19,6 +20,7 @@ fun pickDirectory(
     initialPath: String?,
     onResult: (String?) -> Unit
 ) {
+    // The composable call sites go through SafPickers.pickDirectory() instead.
     onResult(null)
 }
 

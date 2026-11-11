@@ -24,6 +24,8 @@ dependencies {
     implementation(libs.kotlinx.coroutinesSwing)
     implementation(libs.markdownRenderer)
     implementation(libs.markdownRendererM3)
+
+    testImplementation(libs.kotlin.testJunit)
 }
 
 compose.desktop {
@@ -31,7 +33,7 @@ compose.desktop {
         mainClass = "winzzed.komet.ide.MainKt"
 
         nativeDistributions {
-            targetFormats(TargetFormat.Msi, TargetFormat.Exe)
+            targetFormats(TargetFormat.Msi, TargetFormat.Exe, TargetFormat.Deb)
             packageName = "Komet IDE"
             packageVersion = "1.0.0"
             windows {

@@ -31,8 +31,10 @@ import winzzed.komet.ide.data.CURRENT_VERSION
 import winzzed.komet.ide.data.RecentProjects
 import winzzed.komet.ide.data.createProjectOnDisk
 import winzzed.komet.ide.data.fileNameOf
+import winzzed.komet.ide.data.importKinetProject
 import winzzed.komet.ide.data.parentPathOf
 import winzzed.komet.ide.data.pathExists
+import winzzed.komet.ide.platform.rememberKinetFilePicker
 import winzzed.komet.ide.ui.theme.*
 
 /** Below this width the two welcome columns stack. */
@@ -47,7 +49,8 @@ private data class WelcomeAction(
 
 private val WELCOME_ACTIONS = listOf(
     WelcomeAction("Новый проект", "Создать проект для Komet", Icons.Filled.Add, isPrimary = true),
-    WelcomeAction("Открыть", "Открыть проект с диска", Icons.Filled.FolderOpen)
+    WelcomeAction("Открыть", "Открыть проект с диска", Icons.Filled.FolderOpen),
+    WelcomeAction("Открыть плагин", "Импортировать готовый .kinet", Icons.Filled.FileOpen)
 )
 
 /**
@@ -62,6 +65,7 @@ fun StartScreen(onProjectSelected: (String) -> Unit) {
         mutableStateOf(RecentProjects.get().filter { pathExists(it) })
     }
     var showCreateDialog by remember { mutableStateOf(false) }
+    var importError by remember { mutableStateOf<String?>(null) }
 
     val chooser = rememberDirectoryChooser(fallbackRoot = projectsRootDirectory()) { path ->
         if (path != null) {
@@ -69,6 +73,25 @@ fun StartScreen(onProjectSelected: (String) -> Unit) {
             onProjectSelected(path)
         }
     }
+
+    // Unpacks the archive into the default projects folder, then opens it like any
+    // other project so the user can edit and rebuild it.
+    val kinetPicker = rememberKinetFilePicker { name, bytes ->
+        val result = importKinetProject(
+            archiveBytes = bytes,
+            archiveName = name,
+            parentLocation = projectsRootDirectory()
+        )
+        val projectPath = result.projectPath
+        if (result.ok && projectPath != null) {
+            RecentProjects.add(projectPath)
+            onProjectSelected(projectPath)
+        } else {
+            importError = result.message ?: "Не удалось открыть плагин"
+        }
+    }
+
+    val importPlugin = { kinetPicker.show() }
 
     val openProject = {
         chooser.show("Выберите папку проекта", projectsRootDirectory())
@@ -110,6 +133,12 @@ fun StartScreen(onProjectSelected: (String) -> Unit) {
                             modifier = Modifier.weight(1f)
                         )
                     }
+                    Spacer(Modifier.height(8.dp))
+                    WelcomeQuickButton(
+                        "Открыть плагин (.kinet)",
+                        importPlugin,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                     Spacer(Modifier.height(24.dp))
                     ProjectsList(
                         projects = recentProjects,
@@ -132,10 +161,13 @@ fun StartScreen(onProjectSelected: (String) -> Unit) {
                         WELCOME_ACTIONS.forEach { action ->
                             WelcomeRow(
                                 action = action,
-                                onClick = if (action.isPrimary) {
-                                    { showCreateDialog = true }
-                                } else {
-                                    openProject
+                                onClick = when {
+                                    action.isPrimary -> {
+                                        { showCreateDialog = true }
+                                    }
+
+                                    action.title == "Открыть плагин" -> importPlugin
+                                    else -> openProject
                                 }
                             )
                         }
@@ -178,6 +210,37 @@ fun StartScreen(onProjectSelected: (String) -> Unit) {
                 onProjectSelected(created)
             }
         )
+    }
+
+    importError?.let { text ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0x99000000)),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                modifier = Modifier
+                    .widthIn(max = 420.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(IdePopup)
+                    .border(1.dp, IdeBorderStrong, RoundedCornerShape(10.dp))
+                    .padding(20.dp)
+            ) {
+                Text(
+                    "Не удалось открыть плагин",
+                    color = IdeText,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(text, color = IdeTextDim, fontSize = 12.sp)
+                Spacer(Modifier.height(16.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    IdeDialogButton("OK", primary = true, onClick = { importError = null })
+                }
+            }
+        }
     }
 }
 
